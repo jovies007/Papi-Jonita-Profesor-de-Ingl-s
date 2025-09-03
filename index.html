@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Papi Jonita, Profesor de Inglés</title>
+  <style>
+    :root{
+      --bg: #f6f7fb; /* fondo */
+      --card:#ffffff;
+      --ink:#1f2937; /* texto */
+      --muted:#6b7280;
+      --primary:#2563eb; /* azul botones */
+      --primary-ink:#fff;
+      --good:#10b981; /* verde */
+      --warn:#f59e0b; /* ámbar */
+      --bad:#ef4444; /* rojo */
+      --accent:#8b5cf6; /* violeta para detalles */
+      --shadow: 0 10px 30px rgba(0,0,0,.08);
+      --radius: 16px;
+      --radius-sm: 12px;
+    }
+
+    /* Reset mínimo y móvil primero */
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{
+      margin:0; background:var(--bg); color:var(--ink);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height:100dvh; display:flex; align-items:center; justify-content:center;
+      padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+    }
+
+    .container{ width:100%; max-width:640px; }
+    .card{ background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+    header{
+      padding:14px 16px; display:flex; align-items:center; gap:10px; justify-content:space-between; border-bottom:1px solid rgba(0,0,0,.06);
+    }
+    header h1{ font-size:18px; margin:0; display:flex; gap:8px; align-items:center; }
+    header .tag{ font-size:12px; color:var(--muted); }
+
+    .hud{ display:grid; grid-template-columns:1fr; gap:10px; padding:12px 16px; }
+    @media (min-width:480px){ .hud{ grid-template-columns:1fr 1fr 1fr; } }
+
+    .meter{ background:#eef2ff; border-radius:999px; position:relative; height:18px; display:flex; align-items:center; padding:0 10px; overflow:hidden; }
+    .meter .fill{ position:absolute; left:0; top:0; bottom:0; width:0%; background:linear-gradient(90deg, rgba(255,255,255,.4), rgba(255,255,255,0)); opacity:.5; }
+    .meter .bar{ position:absolute; left:0; top:0; bottom:0; width:0%; }
+    .meter .label{ position:relative; z-index:2; font-size:12px; font-weight:600; color:#111827; text-shadow:0 1px 0 rgba(255,255,255,.5) }
+
+    .meter.energy{ background:#ecfeff; }
+    .meter.energy .bar{ background:linear-gradient(90deg, #06b6d4, #0891b2); }
+    .meter.attention{ background:#effdf5; }
+    .meter.attention .bar{ background:linear-gradient(90deg, var(--good), #059669); }
+    .meter.noise{ background:#fff7ed; }
+    .meter.noise .bar{ background:linear-gradient(90deg, #fb923c, #f97316); }
+
+    .stage{ display:grid; grid-template-columns:1fr; gap:14px; padding:0 16px 16px; }
+
+    .scene{ display:grid; grid-template-columns:1fr 1fr; gap:10px; align-items:end; }
+    @media (max-width:420px){ .scene{ grid-template-columns:1fr 1fr; gap:6px; } }
+
+    .svgWrap{ background:linear-gradient(180deg, #f9fafb, #f3f4f6); border-radius:var(--radius); padding:10px; display:flex; align-items:center; justify-content:center; }
+    .svgWrap svg{ width:100%; height:auto; max-height:160px; }
+
+    .bubbles{ display:grid; gap:10px; }
+    .bubble{ background:#fff; border-radius:18px; padding:12px 14px; box-shadow:0 4px 18px rgba(0,0,0,.06); position:relative; font-size:15px; }
+    .bubble small{ color:var(--muted); display:block; margin-bottom:4px; }
+    .bubble.student{ border-left:4px solid var(--accent); }
+    .bubble.jonita{ border-left:4px solid var(--primary); }
+    .bubble.baby{ border-left:4px solid var(--warn); }
+
+    .actions{ display:grid; grid-template-columns:1fr; gap:10px; }
+    @media (min-width:440px){ .actions{ grid-template-columns:1fr 1fr 1fr; } }
+
+    .btn{ appearance:none; border:0; padding:12px 14px; border-radius:12px; font-weight:700; font-size:15px; cursor:pointer; transition: transform .06s ease, box-shadow .06s ease; box-shadow:0 6px 14px rgba(37,99,235,.15); }
+    .btn:active{ transform:translateY(1px); }
+    .btn.primary{ background:var(--primary); color:var(--primary-ink); }
+    .btn.good{ background:var(--good); color:#fff; }
+    .btn.warn{ background:var(--warn); color:#111; }
+    .btn.ghost{ background:#eef2ff; color:#111; box-shadow:none; }
+    .toolbar{ display:flex; gap:10px; justify-content:flex-end; padding:8px 16px 16px; }
+
+    .footerbar{ display:flex; align-items:center; justify-content:space-between; padding:8px 16px 16px; color:var(--muted); font-size:12px; }
+
+    /* Modales */
+    .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; padding:16px; }
+    .overlay[aria-hidden="false"]{ display:flex; }
+    .modal{ width:100%; max-width:560px; background:var(--card); border-radius:18px; box-shadow:var(--shadow); padding:16px; }
+    .modal h2{ margin:0 0 8px; font-size:18px; }
+    .modal .content{ color:#374151; font-size:14px; line-height:1.5; }
+    .modal .row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+
+    /* Pantalla de inicio y fin */
+    .center{ text-align:center; padding:20px 16px; }
+    .title{ font-size:22px; margin:4px 0 8px; }
+    .subtitle{ color:var(--muted); margin:0; }
+
+    .endcard{ text-align:center; padding:18px; border-top:1px dashed #e5e7eb; }
+    .ending{ font-size:18px; font-weight:800; }
+    .ending.good{ color:var(--good); }
+    .ending.bad{ color:var(--bad); }
+    .ending.secret{ color:var(--accent); }
+
+    .pill{ display:inline-flex; gap:6px; background:#f3f4f6; color:#111827; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+
+    /* Animaciones sutiles */
+    @keyframes bob { 0%{ transform:translateY(0) } 50%{ transform:translateY(-2px) } 100%{ transform:translateY(0) } }
+    .bob{ animation: bob 3s ease-in-out infinite; }
+
+    @keyframes pulse { 0%{ opacity:.6 } 50%{ opacity:1 } 100%{ opacity:.6 } }
+    .pulse{ animation: pulse 1.2s ease-in-out infinite; }
+
+    @media (prefers-reduced-motion: reduce){
+      .bob, .pulse{ animation: none !important; }
+      .btn{ transition: none; }
+    }
+
+    /* Accesibilidad extra */
+    .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+    /* iOS tap highlight */
+    *{ -webkit-tap-highlight-color: rgba(0,0,0,0.06); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card" id="screen-start" role="region" aria-label="Pantalla de inicio">
+      <div class="center">
+        <div class="pill">👨‍🏫👶 Papi Jonita • Profesor de Inglés</div>
+        <h1 class="title">Bienvenido</h1>
+        <p class="subtitle">Da clases por webcam mientras tu bebé hace de las suyas. Juega en vertical en tu iPhone/Android.</p>
+        <div style="height:16px"></div>
+        <button class="btn primary" id="btn-start">Comenzar clase</button>
+        <div style="height:12px"></div>
+        <button class="btn ghost" id="btn-help-open-start">Ver ayuda</button>
+        <div style="height:18px"></div>
+        <div id="best-wrap" aria-live="polite" style="font-size:13px; color:#374151;"></div>
+      </div>
+    </div>
+
+    <div class="card" id="game" role="region" aria-label="Juego" style="display:none">
+      <header>
+        <h1>👨‍🏫 Papi Jonita <span class="tag">Profesor de Inglés</span></h1>
+        <div class="pill" id="turn-pill">Turno 0/20</div>
+      </header>
+
+      <section class="hud" aria-label="Indicadores">
+        <div class="meter energy" id="meter-energy" role="progressbar" aria-label="Energía" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+          <div class="bar"></div>
+          <div class="fill"></div>
+          <div class="label">⚡ Energía: <span id="energy-txt">100</span></div>
+        </div>
+        <div class="meter attention" id="meter-attention" role="progressbar" aria-label="Atención del alumno" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+          <div class="bar"></div>
+          <div class="fill"></div>
+          <div class="label">👀 Atención: <span id="attention-txt">50</span></div>
+        </div>
+        <div class="meter noise" id="meter-noise" role="progressbar" aria-label="Ruido del bebé" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="bar pulse" id="noise-bar"></div>
+          <div class="fill"></div>
+          <div class="label">🔊 Ruido: <span id="noise-txt">0</span></div>
+        </div>
+      </section>
+
+      <section class="stage">
+        <div class="scene">
+          <div class="svgWrap bob" aria-label="Jonita frente a su laptop" title="Jonita">
+            <!-- Jonita en SVG inline -->
+            <svg viewBox="0 0 180 160" role="img" aria-label="Jonita, profesor de inglés moreno con lentes">
+              <defs>
+                <linearGradient id="skin" x1="0" x2="1">
+                  <stop offset="0%" stop-color="#c68642"/>
+                  <stop offset="100%" stop-color="#8d5524"/>
+                </linearGradient>
+                <linearGradient id="hair" x1="0" x2="1">
+                  <stop offset="0%" stop-color="#111827"/>
+                  <stop offset="100%" stop-color="#1f2937"/>
+                </linearGradient>
+              </defs>
+              <!-- Cabeza -->
+              <circle cx="90" cy="65" r="34" fill="url(#skin)" />
+              <!-- Cabello -->
+              <path d="M56,60 q34-36 68,0 v-8 q-34-18-68,0 z" fill="url(#hair)" />
+              <!-- Lentes -->
+              <rect x="62" y="62" rx="6" ry="6" width="26" height="14" fill="#111" opacity=".85" />
+              <rect x="92" y="62" rx="6" ry="6" width="26" height="14" fill="#111" opacity=".85" />
+              <rect x="88" y="66" width="6" height="2" fill="#111" />
+              <!-- Ojos (reflejo) -->
+              <circle cx="75" cy="69" r="2" fill="#fff" opacity=".7" />
+              <circle cx="105" cy="69" r="2" fill="#fff" opacity=".7" />
+              <!-- Sonrisa -->
+              <path d="M77,84 q13,8 26,0" fill="none" stroke="#5b1" stroke-width="3" stroke-linecap="round" />
+              <!-- Micrófono/diadema -->
+              <path d="M54,64 q-8,16 8,24" fill="none" stroke="#374151" stroke-width="3"/>
+              <circle cx="62" cy="90" r="4" fill="#374151"/>
+              <!-- Cuerpo y playera -->
+              <rect x="58" y="98" width="64" height="40" rx="10" fill="#2563eb" />
+              <!-- Laptop simple -->
+              <rect x="30" y="120" width="120" height="22" rx="6" fill="#e5e7eb" />
+              <rect x="40" y="122" width="100" height="14" rx="3" fill="#cbd5e1" />
+            </svg>
+          </div>
+          <div class="svgWrap" aria-label="Bebé inquieto" title="Bebé">
+            <!-- Bebé SVG inline -->
+            <svg viewBox="0 0 180 160" role="img" aria-label="Bebé con pañal y chupón">
+              <!-- Cabeza -->
+              <circle cx="90" cy="60" r="30" fill="#fcd5b5" />
+              <!-- Chupón -->
+              <circle cx="90" cy="72" r="8" fill="#60a5fa" />
+              <rect x="82" y="68" width="16" height="6" rx="3" fill="#93c5fd" />
+              <!-- Mechón -->
+              <path d="M85,36 q5,-10 12,0" fill="none" stroke="#1f2937" stroke-width="3" stroke-linecap="round" />
+              <!-- Ojos -->
+              <circle cx="80" cy="60" r="3" fill="#1f2937" />
+              <circle cx="100" cy="60" r="3" fill="#1f2937" />
+              <!-- Cuerpo pañal -->
+              <ellipse cx="90" cy="110" rx="34" ry="24" fill="#e5e7eb" />
+              <rect x="66" y="98" width="48" height="24" rx="10" fill="#fff" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="bubbles" aria-live="polite">
+          <div class="bubble student" id="bubble-student">
+            <small>💻 Alumno dice:</small>
+            <div id="student-text">Teacher, ¡estoy listo! ¿Cuál es la primera pregunta?</div>
+          </div>
+          <div class="bubble jonita" id="bubble-jonita">
+            <small>👨‍🏫 Jonita:</small>
+            <div id="jonita-text">¡Hola! Recuerda: puedes usar 1, 2, 3 en tu teclado para actuar. Esc = Opciones.</div>
+          </div>
+          <div class="bubble baby" id="bubble-baby">
+            <small>👶 Bebé:</small>
+            <div id="baby-text">(tranquilo… por ahora)</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" id="btn-explain" title="1">1) Explicar al alumno</button>
+          <button class="btn good" id="btn-baby" title="2">2) Atender al bebé</button>
+          <button class="btn warn" id="btn-ignore" title="3">3) Ignorar y continuar</button>
+        </div>
+      </section>
+
+      <div class="toolbar">
+        <button class="btn ghost" id="btn-help-open">Ayuda</button>
+        <button class="btn ghost" id="btn-options">Opciones</button>
+        <button class="btn ghost" id="btn-restart">Reiniciar</button>
+      </div>
+
+      <div class="footerbar">
+        <div>Soporta iOS en vertical • Accesible AA • Sin dependencias</div>
+        <div>Atajos: <b>1</b>/<b>2</b>/<b>3</b>, <b>Esc</b></div>
+      </div>
+
+      <div class="endcard" id="endcard" style="display:none">
+        <div class="ending" id="ending-title"></div>
+        <p id="ending-desc" style="margin:6px 0 12px"></p>
+        <button class="btn primary" id="btn-play-again">Jugar de nuevo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Opciones -->
+  <div class="overlay" id="overlay-options" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Opciones">
+    <div class="modal">
+      <h2>⚙️ Opciones</h2>
+      <div class="content">
+        <div class="row">
+          <label class="pill"><input type="checkbox" id="chk-sim-sound" /> Sonido simulado</label>
+          <label class="pill"><input type="checkbox" id="chk-pause" /> Pausa</label>
+        </div>
+        <div style="height:12px"></div>
+        <div class="row">
+          <button class="btn ghost" id="btn-close-options">Cerrar</button>
+          <button class="btn warn" id="btn-reset">Reiniciar partida</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Ayuda -->
+  <div class="overlay" id="overlay-help" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Ayuda">
+    <div class="modal">
+      <h2>❓ Ayuda</h2>
+      <div class="content">
+        <p><b>Objetivo:</b> Completa 20 turnos con 👀 Atención ≥ 70.</p>
+        <ul>
+          <li><b>Explicar (1):</b> Sube 👀, baja ⚡. Si 🔊 es alto, funciona peor.</li>
+          <li><b>Atender bebé (2):</b> Baja 🔊 mucho, baja ⚡ y 👀 un poco.</li>
+          <li><b>Ignorar (3):</b> Riesgoso: puede subir 👀 o bajar por ruido.</li>
+        </ul>
+        <p><b>Derrotas:</b> 🔊 ≥ 100, ⚡ ≤ 0, o 👀 ≤ 0.</p>
+        <p><b>Atajos:</b> 1/2/3 para acciones, Esc abre Opciones. Respeta <code>prefers-reduced-motion</code>.</p>
+        <div class="row">
+          <button class="btn ghost" id="btn-close-help">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    // ---------- Utilidades ----------
+    const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+    const byId = (id) => document.getElementById(id);
+
+    // ---------- Estado ----------
+    const defaults = () => ({
+      turn: 0,
+      maxTurns: 20,
+      energy: 100,
+      attention: 55,
+      noise: 10,
+      paused: false,
+      simSound: false,
+      ended: false,
+      currentQ: null,
+      qIndex: 0,
+      lastBabyEvent: null,
+      babyStreak: 0,
+      maxBabyStreak: 0,
+    });
+
+    let state = defaults();
+
+    // ---------- Banco de preguntas (≥24) ----------
+    const questions = [
+      {q:"Past of go?", a:"went"},
+      {q:"Past of see?", a:"saw"},
+      {q:"Past of eat?", a:"ate"},
+      {q:"Past of have?", a:"had"},
+      {q:"Translate: 'cat' →", a:"gato"},
+      {q:"Translate: 'perro' →", a:"dog"},
+      {q:"Color of the sky?", a:"blue"},
+      {q:"Opposite of 'cold'?", a:"hot"},
+      {q:"Plural of 'child'?", a:"children"},
+      {q:"Comparative of 'fast'?", a:"faster"},
+      {q:"Verb: 'to be' (yo) →", a:"am"},
+      {q:"Translate: 'I am hungry' →", a:"Tengo hambre"},
+      {q:"Translate: 'Where are you from?' →", a:"¿De dónde eres?"},
+      {q:"Color of grass?", a:"green"},
+      {q:"Past of 'make'?", a:"made"},
+      {q:"Translate: 'mesa' →", a:"table"},
+      {q:"Opposite of 'big'?", a:"small"},
+      {q:"Family: 'madre' →", a:"mother"},
+      {q:"House: 'puerta' →", a:"door"},
+      {q:"Question: '¿Cómo estás?' →", a:"How are you?"},
+      {q:"Past of 'buy'?", a:"bought"},
+      {q:"Translate: 'Yo tengo 20 años' →", a:"I am 20 years old"},
+      {q:"Past of 'take'?", a:"took"},
+      {q:"Synonym of 'smart' →", a:"clever"},
+      {q:"Translate: 'libro' →", a:"book"},
+      {q:"Past of 'write'?", a:"wrote"},
+      {q:"Translate: 'I like coffee' →", a:"Me gusta el café"},
+      {q:"Opposite of 'easy'?", a:"hard"},
+      {q:"Translate: 'rojo' →", a:"red"},
+      {q:"Past of 'sleep'?", a:"slept"},
+    ];
+
+    // ---------- Eventos del bebé ----------
+    const babyEvents = [
+      { name: "Llora fuerte", prob: .25, noise:+30, attention:-5, interrupt:true },
+      { name: "Se calma", prob: .15, noise:-20, interrupt:false },
+      { name: "Escupe el chupón", prob: .2, noise:+15, interrupt:true },
+      { name: "Bosteza", prob: .15, noise:-10, interrupt:false },
+      { name: "Golpea el teclado", prob: .15, noise:+25, attention:"chance", chance: .4, attentionDelta:-10, interrupt:true },
+      { name: "Nada pasa", prob: .1, noise:0, interrupt:false },
+    ];
+
+    function pickBabyEvent(){
+      const r = Math.random();
+      let acc = 0;
+      for(const e of babyEvents){
+        acc += e.prob;
+        if(r <= acc){
+          let attentionDelta = 0;
+          if(e.attention === "chance" && Math.random() < (e.chance||0)) attentionDelta = e.attentionDelta;
+          else if(typeof e.attention === 'number') attentionDelta = e.attention;
+          return { name: e.name, noise: e.noise, attention: attentionDelta, interrupt: !!e.interrupt };
+        }
+      }
+      return { name:"Se calma", noise:-10, attention:0, interrupt:false };
+    }
+
+    // ---------- Render HUD ----------
+    const energyTxt = byId('energy-txt');
+    const attentionTxt = byId('attention-txt');
+    const noiseTxt = byId('noise-txt');
+    const meterEnergy = byId('meter-energy');
+    const meterAttention = byId('meter-attention');
+    const meterNoise = byId('meter-noise');
+    const noiseBar = byId('noise-bar');
+    const turnPill = byId('turn-pill');
+
+    function setMeter(el, value){
+      const bar = el.querySelector('.bar');
+      el.setAttribute('aria-valuenow', value);
+      bar.style.width = value + '%';
+    }
+
+    function renderHUD(){
+      energyTxt.textContent = state.energy;
+      attentionTxt.textContent = state.attention;
+      noiseTxt.textContent = state.noise;
+      setMeter(meterEnergy, state.energy);
+      setMeter(meterAttention, state.attention);
+      setMeter(meterNoise, state.noise);
+      turnPill.textContent = `Turno ${state.turn}/${state.maxTurns}`;
+      noiseBar.classList.toggle('pulse', !!state.simSound);
+    }
+
+    // ---------- UI de burbujas ----------
+    const studentText = byId('student-text');
+    const jonitaText = byId('jonita-text');
+    const babyText = byId('baby-text');
+
+    function sayStudent(t){ studentText.textContent = t; }
+    function sayJonita(t){ jonitaText.textContent = t; }
+    function sayBaby(t){ babyText.textContent = t; }
+
+    function nextQuestion(){
+      state.currentQ = questions[state.qIndex % questions.length];
+      state.qIndex++;
+      sayStudent(`Question: ${state.currentQ.q}`);
+    }
+
+    // ---------- Reglas de efectos ----------
+    function applyBabyEvent(){
+      const e = pickBabyEvent();
+      state.lastBabyEvent = e.name;
+      if(e.interrupt){
+        state.babyStreak++;
+        if(state.babyStreak>state.maxBabyStreak) state.maxBabyStreak = state.babyStreak;
+      } else {
+        state.babyStreak = 0;
+      }
+      state.noise = clamp(state.noise + e.noise, 0, 100);
+      state.attention = clamp(state.attention + (e.attention||0), 0, 100);
+      sayBaby(eventDescription(e));
+    }
+
+    function eventDescription(e){
+      const deltaN = e.noise>0? `+${e.noise}`: `${e.noise}`;
+      const deltaA = (e.attention||0)>0? `+${e.attention}`: (e.attention||0);
+      let tail = ` (🔊 ${deltaN}${(e.attention||0)?`, 👀 ${deltaA}`:''})`;
+      return `${e.name}${e.noise!==0 || (e.attention||0)!==0 ? tail : ''}`;
+    }
+
+    function effectiveness(){
+      // Efectividad de explicar según ruido (más ruido, peor)
+      const base = 12; // ganancia base de atención
+      const factorNoise = 1 - (state.noise/130); // ruido 100 => factor ~0.23
+      const factorEnergy = 0.6 + (state.energy/250); // más energía, mejor
+      return Math.max(2, Math.round(base * factorNoise * factorEnergy));
+    }
+
+    function riskOutcome(){
+      // Ignorar: chance de éxito disminuye con ruido
+      const pSuccess = clamp(0.75 - state.noise/150, 0.1, 0.9);
+      return Math.random() < pSuccess; // true = mejora, false = empeora
+    }
+
+    // ---------- Acciones ----------
+    function doExplain(){
+      const eff = effectiveness();
+      state.energy = clamp(state.energy - 7, 0, 100);
+      state.attention = clamp(state.attention + eff, 0, 100);
+      sayJonita(`✅ Correcto: ${state.currentQ.q} → ${state.currentQ.a}. (Efectividad +${eff} 👀)`);
+    }
+
+    function doBabyCare(){
+      state.energy = clamp(state.energy - 6, 0, 100);
+      state.attention = clamp(state.attention - 3, 0, 100);
+      let drop = 35;
+      // chance de que se duerma
+      if(Math.random() < 0.25){ drop += 10; sayBaby('Se durmió un ratito 😴 (-10 extra 🔊)'); }
+      state.noise = clamp(state.noise - drop, 0, 100);
+      sayJonita('🍼 Calma… Calma… (bajas 🔊 y consumes ⚡)');
+    }
+
+    function doIgnore(){
+      state.energy = clamp(state.energy - 4, 0, 100);
+      if(riskOutcome()){
+        const gain = Math.max(4, Math.round(14 - state.noise/10));
+        state.attention = clamp(state.attention + gain, 0, 100);
+        sayJonita(`😅 Continuando a pesar del ruido… (+${gain} 👀)`);
+      } else {
+        const loss = Math.max(4, Math.round(10 + state.noise/12));
+        state.attention = clamp(state.attention - loss, 0, 100);
+        sayJonita(`🙈 Uy, salió mal ignorar. (−${loss} 👀)`);
+      }
+    }
+
+    // ---------- Flujo de turno ----------
+    function doTurn(action){
+      if(state.paused || state.ended) return;
+      state.turn++;
+      applyBabyEvent();
+      nextQuestion();
+      if(action==='explain') doExplain();
+      if(action==='baby') doBabyCare();
+      if(action==='ignore') doIgnore();
+      checkEnd();
+      renderHUD();
+    }
+
+    // ---------- Finales ----------
+    function checkEnd(){
+      let ending = null, desc = '';
+      if(state.noise >= 100){ ending = {key:'bad-noise', label:'Final: Bebé', tone:'bad'}; desc = 'El bebé finalizó la llamada… accidentalmente. 🔌'; }
+      else if(state.energy <= 0){ ending = {key:'bad-energy', label:'Final: Cansancio', tone:'bad'}; desc = 'Jonita se quedó dormido en cámara. 💫'; }
+      else if(state.attention <= 0){ ending = {key:'bad-attention', label:'Final: Alumno', tone:'bad'}; desc = 'El alumno pidió reprogramar. 📅'; }
+      else if(state.turn >= state.maxTurns && state.attention >= 70){
+        ending = {key:'good', label:'¡Clase completada!', tone:'good'}; desc = 'Bebé dormido, alumno contento. 🎉';
+        if(state.maxBabyStreak >= 3 && state.attention >= 80){ ending = {key:'secret', label:'🌟 Final Secreto', tone:'secret'}; desc = 'El bebé dice su primera palabra en inglés: “<i>Milk</i>”.'; }
+      } else if(state.turn >= state.maxTurns){
+        ending = {key:'time', label:'Clase terminada', tone:'bad'}; desc = 'La clase terminó pero la atención no alcanzó 70. Intenta otra vez.';
+      }
+
+      if(ending){ showEnding(ending, desc); saveBest(ending); state.ended = true; }
+    }
+
+    function showEnding(ending, desc){
+      const endcard = byId('endcard');
+      const et = byId('ending-title');
+      const ed = byId('ending-desc');
+      et.className = `ending ${ending.tone}`;
+      et.innerHTML = `${ending.label}`;
+      ed.innerHTML = desc;
+      endcard.style.display = 'block';
+    }
+
+    // ---------- Persistencia ----------
+    const LS_KEY = 'papi-jonita-best-v1';
+    function loadBest(){
+      try{ return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); }catch{ return null; }
+    }
+    function saveBest(ending){
+      const best = loadBest();
+      const current = { ending: ending.key, attention: state.attention, turns: state.turn, date: new Date().toISOString() };
+      let keep = false;
+      if(!best) keep = true;
+      else{
+        // Prioriza good/secret > time > bads; luego por mayor atención
+        const rank = (k)=>({secret:4, good:3, time:2, 'bad-attention':1,'bad-energy':1,'bad-noise':1})[k]||0;
+        if(rank(current.ending) > rank(best.ending)) keep = true;
+        else if(rank(current.ending) === rank(best.ending) && current.attention > best.attention) keep = true;
+      }
+      if(keep){ localStorage.setItem(LS_KEY, JSON.stringify(current)); updateBestBanner(); }
+    }
+
+    function updateBestBanner(){
+      const wrap = byId('best-wrap');
+      const best = loadBest();
+      if(!wrap) return;
+      if(best){
+        const niceDate = new Date(best.date).toLocaleDateString();
+        const label = (k)=>({secret:'Secreto', good:'Bueno', time:'Tiempo', 'bad-attention':'Alumno', 'bad-energy':'Cansancio', 'bad-noise':'Bebé'})[k]||'—';
+        wrap.innerHTML = `🏅 Mejor resultado: <b>${label(best.ending)}</b> • 👀 ${best.attention} • turnos ${best.turns} • ${niceDate}`;
+      } else {
+        wrap.textContent = 'Aún no hay récords. ¡Comienza tu primera clase!';
+      }
+    }
+
+    // ---------- Control de UI / Pantallas ----------
+    const screenStart = byId('screen-start');
+    const game = byId('game');
+    const endPlayAgain = byId('btn-play-again');
+
+    function startGame(){
+      state = defaults();
+      screenStart.style.display = 'none';
+      game.style.display = 'block';
+      byId('endcard').style.display = 'none';
+      sayJonita('¡Listo! Empecemos con calma y buen humor.');
+      sayBaby('(tranquilo… por ahora)');
+      nextQuestion();
+      renderHUD();
+      focusFirstAction();
+    }
+
+    function restartGame(){ startGame(); }
+
+    function focusFirstAction(){ byId('btn-explain')?.focus(); }
+
+    // ---------- Opciones & Ayuda ----------
+    const ovOpt = byId('overlay-options');
+    const ovHelp = byId('overlay-help');
+    const chkSound = byId('chk-sim-sound');
+    const chkPause = byId('chk-pause');
+
+    function openOptions(){ ovOpt.setAttribute('aria-hidden','false'); }
+    function closeOptions(){ ovOpt.setAttribute('aria-hidden','true'); }
+    function openHelp(){ ovHelp.setAttribute('aria-hidden','false'); }
+    function closeHelp(){ ovHelp.setAttribute('aria-hidden','true'); }
+
+    chkSound?.addEventListener('change', ()=>{ state.simSound = !!chkSound.checked; renderHUD(); });
+    chkPause?.addEventListener('change', ()=>{ state.paused = !!chkPause.checked; });
+
+    // ---------- Controles ----------
+    byId('btn-explain').addEventListener('click', ()=>doTurn('explain'));
+    byId('btn-baby').addEventListener('click', ()=>doTurn('baby'));
+    byId('btn-ignore').addEventListener('click', ()=>doTurn('ignore'));
+
+    byId('btn-options').addEventListener('click', ()=>openOptions());
+    byId('btn-restart').addEventListener('click', ()=>restartGame());
+    byId('btn-close-options').addEventListener('click', ()=>closeOptions());
+    byId('btn-reset').addEventListener('click', ()=>{ closeOptions(); restartGame(); });
+
+    byId('btn-help-open').addEventListener('click', ()=>openHelp());
+    byId('btn-help-open-start').addEventListener('click', ()=>openHelp());
+    byId('btn-close-help').addEventListener('click', ()=>closeHelp());
+
+    byId('btn-start').addEventListener('click', ()=>startGame());
+    endPlayAgain.addEventListener('click', ()=>restartGame());
+
+    // Acceso por teclado
+    window.addEventListener('keydown', (e)=>{
+      if(ovOpt.getAttribute('aria-hidden')==='false' || ovHelp.getAttribute('aria-hidden')==='false'){
+        if(e.key==='Escape'){ closeOptions(); closeHelp(); }
+        return;
+      }
+      if(e.key==='Escape'){ openOptions(); }
+      if(state.ended || screenStart.style.display !== 'none') return;
+      if(e.key==='1') doTurn('explain');
+      if(e.key==='2') doTurn('baby');
+      if(e.key==='3') doTurn('ignore');
+    });
+
+    // Inicialización
+    updateBestBanner();
+  })();
+  </script>
+</body>
+</html>
